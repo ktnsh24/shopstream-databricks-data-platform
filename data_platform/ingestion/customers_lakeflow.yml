@@ -1,0 +1,46 @@
+# Lakeflow Connect — customers ingestion pipeline
+#
+# What this does:
+#   Connects to ShopStream's PostgreSQL database and ingests the `customers`
+#   table directly into helix_bronze.customers.raw (Delta, Unity Catalog).
+#
+# How it works:
+#   - Lakeflow Connect is a Databricks-managed ingestion service (like Fivetran, built-in).
+#   - It uses CDC (Change Data Capture) on the source DB.
+#   - On first run: full load of the table.
+#   - On subsequent runs: only rows that changed since the last run.
+#   - No intermediate files in ADLS Gen2 needed — data goes directly to Delta.
+#
+# Pre-requisite:
+#   The connection "shopstream_postgres" must be created first in the
+#   Databricks workspace UI or via Terraform (terraform/databricks/connections.tf).
+#   Connection stores: host, port, database name, username/password (from Key Vault).
+#
+# Deployed via: databricks bundle deploy (references databricks.bundle.yml)
+
+pipeline_name: helix_customers_lakeflow_connect
+
+ingestion_definition:
+  connection_name: shopstream_postgres  # created in workspace, backed by Key Vault
+
+  ingestion_gateway_id: ${var.LAKEFLOW_GATEWAY_ID}  # set in .env / DAB vars
+
+  objects:
+    - table:
+        source_schema: public
+        source_table: customers
+        destination_catalog: helix_bronze
+        destination_schema: customers
+        destination_table: raw
+
+schedule:
+  # Runs nightly at 00:30 UTC — before the Silver batch pipeline at 01:00 UTC
+  quartz_cron_expression: "0 30 0 * * ?"
+  timezone_id: "UTC"
+
+# On failure: alert and do not proceed to Silver pipeline.
+# nightly_batch_pipeline.yml depends on this completing successfully.
+notifications:
+  - on_failure:
+      email_addresses:
+        - ${var.ALERT_EMAIL}

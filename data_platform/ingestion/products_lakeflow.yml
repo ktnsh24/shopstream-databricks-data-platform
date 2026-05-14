@@ -1,0 +1,39 @@
+# Lakeflow Connect — products ingestion pipeline
+#
+# Same pattern as customers_lakeflow.yml.
+# Products table changes slowly (new products added weekly, prices updated daily).
+# CDC ensures we only process the delta, not a full reload.
+
+pipeline_name: helix_products_lakeflow_connect
+
+ingestion_definition:
+  connection_name: shopstream_postgres
+
+  ingestion_gateway_id: ${var.LAKEFLOW_GATEWAY_ID}
+
+  objects:
+    - table:
+        source_schema: public
+        source_table: products
+        destination_catalog: helix_bronze
+        destination_schema: products
+        destination_table: raw
+
+    - table:
+        # Product pricing is a separate table in ShopStream's DB.
+        # Lakeflow Connect can ingest multiple tables from one connection.
+        source_schema: public
+        source_table: product_pricing
+        destination_catalog: helix_bronze
+        destination_schema: products
+        destination_table: pricing_raw
+
+schedule:
+  # Runs at 00:45 UTC — after customers (00:30), before Silver pipeline (01:00)
+  quartz_cron_expression: "0 45 0 * * ?"
+  timezone_id: "UTC"
+
+notifications:
+  - on_failure:
+      email_addresses:
+        - ${var.ALERT_EMAIL}

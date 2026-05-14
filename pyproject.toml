@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "shopstream-databricks-data-platform"
+version = "0.1.0"
+description = "ShopStream data platform — medallion architecture on Azure Databricks"
+authors = []
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pyspark = "^3.5"
+delta-spark = "^3.1"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0"
+pytest-asyncio = "^0.23"
+ruff = "^0.4"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

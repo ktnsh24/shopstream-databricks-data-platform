@@ -1,0 +1,141 @@
+bundle:
+  name: shopstream-databricks-data-platform
+
+# ---------------------------------------------------------------------------
+# Variables
+# ---------------------------------------------------------------------------
+variables:
+  DATABRICKS_HOST:
+    description: Databricks workspace URL (e.g. https://adb-xxx.azuredatabricks.net)
+  STORAGE_ACCOUNT:
+    description: ADLS Gen2 storage account name
+    default: helixdataadls
+  ALERT_EMAIL:
+    description: Email for job failure alerts
+    default: team@shopstream.example
+  LAKEFLOW_GATEWAY_ID:
+    description: Lakeflow Connect gateway ID (created in workspace UI)
+
+# ---------------------------------------------------------------------------
+# Target — single prod environment
+# Wife deploys here during Phase 02. Ketan copies the finished code into
+# helix-ai-platform after Phase 02 is complete.
+# ---------------------------------------------------------------------------
+targets:
+  prod:
+    mode: production
+    workspace:
+      host: ${var.DATABRICKS_HOST}
+
+# ---------------------------------------------------------------------------
+# Resources
+# ---------------------------------------------------------------------------
+resources:
+
+  pipelines:
+
+    # Lakeflow Connect — pulls customers from PostgreSQL into Bronze Delta
+    customers_lakeflow:
+      name: helix_customers_lakeflow_connect
+      ingestion_definition:
+        connection_name: shopstream_postgres
+        ingestion_gateway_id: ${var.LAKEFLOW_GATEWAY_ID}
+        objects:
+          - table:
+              source_schema: public
+              source_table: customers
+              destination_catalog: helix_bronze
+              destination_schema: customers
+              destination_table: raw
+
+    # Lakeflow Connect — pulls products from PostgreSQL into Bronze Delta
+    products_lakeflow:
+      name: helix_products_lakeflow_connect
+      ingestion_definition:
+        connection_name: shopstream_postgres
+        ingestion_gateway_id: ${var.LAKEFLOW_GATEWAY_ID}
+        objects:
+          - table:
+              source_schema: public
+              source_table: products
+              destination_catalog: helix_bronze
+              destination_schema: products
+              destination_table: raw
+          - table:
+              source_schema: public
+              source_table: product_pricing
+              destination_catalog: helix_bronze
+              destination_schema: products
+              destination_table: pricing_raw
+
+    # Lakeflow SDP — Bronze orders streaming + Silver + Gold (continuous)
+    streaming_pipeline:
+      name: helix_streaming_pipeline
+      continuous: true
+      catalog: helix_bronze
+      target: orders
+      libraries:
+        - notebook:
+            path: /data_platform/pipelines/bronze/ingest_orders_streaming
+        - notebook:
+            path: /data_platform/pipelines/silver/fct_orders
+        - notebook:
+            path: /data_platform/pipelines/gold/revenue_daily
+
+    # Lakeflow SDP — Nightly batch: Bronze returns + Silver dims + Gold aggregations
+    nightly_batch_pipeline:
+      name: helix_nightly_batch_pipeline
+      catalog: helix_bronze
+      libraries:
+        - notebook:
+            path: /data_platform/pipelines/bronze/ingest_customers_batch
+        - notebook:
+            path: /data_platform/pipelines/bronze/ingest_products_batch
+        - notebook:
+            path: /data_platform/pipelines/bronze/ingest_returns_autoloader
+        - notebook:
+            path: /data_platform/pipelines/silver/dim_customers_scd2
+        - notebook:
+            path: /data_platform/pipelines/silver/dim_products_scd1
+        - notebook:
+            path: /data_platform/pipelines/silver/dim_regions_truncate_load
+        - notebook:
+            path: /data_platform/pipelines/silver/fct_returns
+        - notebook:
+            path: /data_platform/pipelines/gold/customer_metrics
+        - notebook:
+            path: /data_platform/pipelines/gold/product_performance
+
+  jobs:
+
+    nightly_batch:
+      name: helix_nightly_batch
+      schedule:
+        quartz_cron_expression: "0 0 1 * * ?"
+        timezone_id: "UTC"
+      tasks:
+        - task_key: lakeflow_connect_customers
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.customers_lakeflow.id}
+        - task_key: lakeflow_connect_products
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.products_lakeflow.id}
+        - task_key: nightly_batch_pipeline
+          depends_on:
+            - task_key: lakeflow_connect_customers
+            - task_key: lakeflow_connect_products
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.nightly_batch_pipeline.id}
+      email_notifications:
+        on_failure:
+          - ${var.ALERT_EMAIL}
+
+    delta_maintenance:
+      name: helix_delta_maintenance
+      schedule:
+        quartz_cron_expression: "0 0 3 ? * SUN"
+        timezone_id: "UTC"
+      tasks:
+        - task_key: optimize_vacuum
+          notebook_task:
+            notebook_path: /data_platform/notebooks/delta_optimize

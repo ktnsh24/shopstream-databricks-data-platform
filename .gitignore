@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+.venv/
+.env
+.env.*
+!.env.example
+
+# Secrets — never commit
+*.pem
+*.key
+*.pfx
+terraform.tfvars
+*.tfstate
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl
+
+# Lab outputs — may contain ingested data
+lab_results/
+data_generators/output/
+*.parquet
+*.csv
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Databricks
+.databricks/
