@@ -54,11 +54,11 @@ resources:
       target: orders
       libraries:
         - notebook:
-            path: /data_platform/pipelines/bronze/ingest_orders_streaming
+            path: data_platform/pipelines/bronze/ingest_orders_streaming
         - notebook:
-            path: /data_platform/pipelines/silver/fct_orders
+            path: data_platform/pipelines/silver/fct_orders
         - notebook:
-            path: /data_platform/pipelines/gold/revenue_daily
+            path: data_platform/pipelines/gold/revenue_daily
 
     # Lakeflow SDP — Nightly batch: Bronze returns + Silver dims + Gold aggregations
     nightly_batch_pipeline:
@@ -68,23 +68,23 @@ resources:
       target: batch
       libraries:
         - notebook:
-            path: /data_platform/pipelines/bronze/ingest_customers_batch
+            path: data_platform/pipelines/bronze/ingest_customers_batch
         - notebook:
-            path: /data_platform/pipelines/bronze/ingest_products_batch
+            path: data_platform/pipelines/bronze/ingest_products_batch
         - notebook:
-            path: /data_platform/pipelines/bronze/ingest_returns_autoloader
+            path: data_platform/pipelines/bronze/ingest_returns_autoloader
         - notebook:
-            path: /data_platform/pipelines/silver/dim_customers_scd2
+            path: data_platform/pipelines/silver/dim_customers_scd2
         - notebook:
-            path: /data_platform/pipelines/silver/dim_products_scd1
+            path: data_platform/pipelines/silver/dim_products_scd1
         - notebook:
-            path: /data_platform/pipelines/silver/dim_regions_truncate_load
+            path: data_platform/pipelines/silver/dim_regions_truncate_load
         - notebook:
-            path: /data_platform/pipelines/silver/fct_returns
+            path: data_platform/pipelines/silver/fct_returns
         - notebook:
-            path: /data_platform/pipelines/gold/customer_metrics
+            path: data_platform/pipelines/gold/customer_metrics
         - notebook:
-            path: /data_platform/pipelines/gold/product_performance
+            path: data_platform/pipelines/gold/product_performance
 
   jobs:
 
