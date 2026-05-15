@@ -68,6 +68,7 @@ resources:
       schedule:
         quartz_cron_expression: "0 0 1 * * ?"
         timezone_id: "UTC"
+        pause_status: PAUSED  # data in gold layer — re-enable when refreshing for ML training
       tasks:
         # --- Bronze ingestion (parallel, no dependencies) ---
         - task_key: ingest_customers
@@ -100,11 +101,18 @@ resources:
             notebook_path: ${workspace.root_path}/files/data_platform/pipelines/silver/dim_regions_truncate_load
 
         # --- Silver facts (depend on dims) ---
+        - task_key: fct_orders
+          depends_on:
+            - task_key: dim_customers
+            - task_key: dim_products
+            - task_key: dim_regions
+          notebook_task:
+            notebook_path: ${workspace.root_path}/files/data_platform/pipelines/silver/fct_orders
+
         - task_key: fct_returns
           depends_on:
             - task_key: ingest_returns
-            - task_key: dim_customers
-            - task_key: dim_products
+            - task_key: fct_orders
           notebook_task:
             notebook_path: ${workspace.root_path}/files/data_platform/pipelines/silver/fct_returns
 

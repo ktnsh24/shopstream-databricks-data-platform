@@ -44,4 +44,3 @@ revenue = (
 )
 
 print(f"fct_revenue_daily: {revenue.count()} date rows")
-    build_revenue_daily(spark)

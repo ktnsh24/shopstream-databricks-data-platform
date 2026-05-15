@@ -26,8 +26,19 @@ else:
     target.alias("t").merge(
         source.alias("s"),
         "t.product_id = s.product_id"
-    ).whenMatchedUpdateAll(
-    ).whenNotMatchedInsertAll(
-    ).execute()
+    ).whenMatchedUpdate(set={
+        "t.product_name": "s.product_name",
+        "t.category":     "s.category",
+        "t.unit_price":   "s.unit_price",
+        "t.supplier_id":  "s.supplier_id",
+        "t._last_updated": "current_timestamp()",
+    }).whenNotMatchedInsert(values={
+        "t.product_id":   "s.product_id",
+        "t.product_name": "s.product_name",
+        "t.category":     "s.category",
+        "t.unit_price":   "s.unit_price",
+        "t.supplier_id":  "s.supplier_id",
+        "t._last_updated": "current_timestamp()",
+    }).execute()
 
 print(f"dim_products updated: {spark.table(target_table).count()} total rows")

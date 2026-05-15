@@ -3,7 +3,7 @@
 # spark is injected automatically — do not call SparkSession.builder here.
 from pyspark.sql.functions import (
     col, count, sum as spark_sum, avg,
-    round as spark_round, current_timestamp
+    round as spark_round, current_timestamp, when
 )
 
 spark.sql("CREATE SCHEMA IF NOT EXISTS helix_gold.products")
@@ -35,7 +35,11 @@ perf = (
     .join(return_rate, on="product_id", how="left")
     .fillna(0)
     .withColumn("return_rate_pct",
-        spark_round(col("total_returns") / col("total_units_sold") * 100, 1))
+          spark_round(
+              when(col("total_units_sold") > 0,
+                   col("total_returns") / col("total_units_sold") * 100
+              ).otherwise(0.0),
+          1))
 )
 
 (

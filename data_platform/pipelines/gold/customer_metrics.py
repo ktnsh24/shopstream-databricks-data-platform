@@ -53,4 +53,3 @@ metrics = (
 )
 
 print(f"fct_customer_metrics: {metrics.count()} customers")
-    build_customer_metrics(spark)
