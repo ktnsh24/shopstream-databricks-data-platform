@@ -2,7 +2,7 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, from_json, current_timestamp
 from pyspark.sql.types import StructType, StructField, StringType, DoubleType, IntegerType
-import dbutils
+# dbutils is injected automatically in Databricks — do not import it
 
 #Define schema and config 
 
