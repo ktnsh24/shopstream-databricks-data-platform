@@ -1,3 +1,4 @@
+# Databricks notebook source
 from databricks.connect import DatabricksSession
 
 

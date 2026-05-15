@@ -1,3 +1,4 @@
+# Databricks notebook source
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, to_date, current_timestamp, lit
 

@@ -1,3 +1,4 @@
+# Databricks notebook source
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.functions import (
     col, lit, current_timestamp, when, sha2, concat_ws
