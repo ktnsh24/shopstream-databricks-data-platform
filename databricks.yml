@@ -62,34 +62,23 @@ resources:
     # Nightly batch — runs as sequential Databricks Job notebook tasks.
     # No DLT here: plain Spark notebooks; spark is injected automatically.
     # Execution order: bronze → silver dims (parallel) → silver facts → gold
+    # No job_clusters block: workspace is serverless-only, cluster is auto-provisioned.
     nightly_batch:
       name: helix_nightly_batch
       schedule:
         quartz_cron_expression: "0 0 1 * * ?"
         timezone_id: "UTC"
-      job_clusters:
-        - job_cluster_key: batch_cluster
-          new_cluster:
-            spark_version: "15.4.x-scala2.12"
-            node_type_id: Standard_DS3_v2
-            num_workers: 1
-            data_security_mode: SINGLE_USER
-            spark_conf:
-              spark.databricks.delta.preview.enabled: "true"
       tasks:
         # --- Bronze ingestion (parallel, no dependencies) ---
         - task_key: ingest_customers
-          job_cluster_key: batch_cluster
           notebook_task:
             notebook_path: ${workspace.root_path}/files/data_platform/pipelines/bronze/ingest_customers_batch
 
         - task_key: ingest_products
-          job_cluster_key: batch_cluster
           notebook_task:
             notebook_path: ${workspace.root_path}/files/data_platform/pipelines/bronze/ingest_products_batch
 
         - task_key: ingest_returns
-          job_cluster_key: batch_cluster
           notebook_task:
             notebook_path: ${workspace.root_path}/files/data_platform/pipelines/bronze/ingest_returns_autoloader
 
@@ -97,19 +86,16 @@ resources:
         - task_key: dim_customers
           depends_on:
             - task_key: ingest_customers
-          job_cluster_key: batch_cluster
           notebook_task:
             notebook_path: ${workspace.root_path}/files/data_platform/pipelines/silver/dim_customers_scd2
 
         - task_key: dim_products
           depends_on:
             - task_key: ingest_products
-          job_cluster_key: batch_cluster
           notebook_task:
             notebook_path: ${workspace.root_path}/files/data_platform/pipelines/silver/dim_products_scd1
 
         - task_key: dim_regions
-          job_cluster_key: batch_cluster
           notebook_task:
             notebook_path: ${workspace.root_path}/files/data_platform/pipelines/silver/dim_regions_truncate_load
 
@@ -119,7 +105,6 @@ resources:
             - task_key: ingest_returns
             - task_key: dim_customers
             - task_key: dim_products
-          job_cluster_key: batch_cluster
           notebook_task:
             notebook_path: ${workspace.root_path}/files/data_platform/pipelines/silver/fct_returns
 
@@ -127,21 +112,18 @@ resources:
         - task_key: customer_metrics
           depends_on:
             - task_key: fct_returns
-          job_cluster_key: batch_cluster
           notebook_task:
             notebook_path: ${workspace.root_path}/files/data_platform/pipelines/gold/customer_metrics
 
         - task_key: product_performance
           depends_on:
             - task_key: fct_returns
-          job_cluster_key: batch_cluster
           notebook_task:
             notebook_path: ${workspace.root_path}/files/data_platform/pipelines/gold/product_performance
 
         - task_key: revenue_daily
           depends_on:
             - task_key: fct_returns
-          job_cluster_key: batch_cluster
           notebook_task:
             notebook_path: ${workspace.root_path}/files/data_platform/pipelines/gold/revenue_daily
 
