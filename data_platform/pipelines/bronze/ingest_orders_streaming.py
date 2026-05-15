@@ -19,7 +19,7 @@ STORAGE_ACCOUNT  = "helixdatalfqrcq"
 TARGET_PATH      = f"abfss://bronze@{STORAGE_ACCOUNT}.dfs.core.windows.net/orders/orders_raw/"
 CHECKPOINT_PATH  = f"abfss://checkpoints@{STORAGE_ACCOUNT}.dfs.core.windows.net/bronze/orders/"
 CONSUMER_GROUP   = "databricks-streaming"
-NAMESPACE        = "helix-events-abc123"
+NAMESPACE        = "helix-events-lfqrcq"
 EVENT_HUB        = "orders"
 
 # Read the connection string from Databricks secrets
