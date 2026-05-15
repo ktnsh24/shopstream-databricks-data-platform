@@ -14,7 +14,7 @@ ORDER_SCHEMA = StructType([
     StructField("order_ts",     StringType(),  nullable=True),
 ])
 
-STORAGE_ACCOUNT  = "helixdata001"
+STORAGE_ACCOUNT  = "helixdatalfqrcq"
 TARGET_PATH      = f"abfss://bronze@{STORAGE_ACCOUNT}.dfs.core.windows.net/orders/orders_raw/"
 CHECKPOINT_PATH  = f"abfss://checkpoints@{STORAGE_ACCOUNT}.dfs.core.windows.net/bronze/orders/"
 CONSUMER_GROUP   = "databricks-streaming"

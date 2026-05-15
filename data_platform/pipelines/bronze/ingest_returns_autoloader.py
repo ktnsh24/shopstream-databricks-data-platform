@@ -16,7 +16,7 @@ RETURNS_SCHEMA = StructType([
 ])
 
 #Define paths
-STORAGE_ACCOUNT = "helixdata001"
+STORAGE_ACCOUNT = "helixdatalfqrcq"
 SOURCE_PATH  = f"abfss://bronze@{STORAGE_ACCOUNT}.dfs.core.windows.net/raw/returns/"
 TARGET_PATH  = f"abfss://bronze@{STORAGE_ACCOUNT}.dfs.core.windows.net/returns/returns_raw/"
 CHECKPOINT_PATH = f"abfss://checkpoints@{STORAGE_ACCOUNT}.dfs.core.windows.net/bronze/returns/"
