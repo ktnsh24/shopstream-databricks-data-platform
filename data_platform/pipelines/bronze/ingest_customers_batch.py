@@ -1,9 +1,9 @@
 # Databricks notebook source
-# Batch ingestion — reads customer CSV files from ADLS using Auto Loader.
+# Batch ingestion — reads customer CSV files from ADLS.
 # Runs as a Databricks Job notebook task (not a DLT pipeline).
 # Re-runnable: overwrites the bronze table each time to avoid duplicates.
 from pyspark.sql.functions import current_timestamp
-from pyspark.sql.types import StructType, StructField, StringType, DateType
+from pyspark.sql.types import StructType, StructField, StringType
 
 STORAGE_ACCOUNT = "helixdatalfqrcq"
 SOURCE_PATH = f"abfss://bronze@{STORAGE_ACCOUNT}.dfs.core.windows.net/raw/customers/"
@@ -26,8 +26,7 @@ spark.sql("CREATE SCHEMA IF NOT EXISTS helix_bronze.customers")
 
 df = (
     spark.read
-    .format("cloudFiles")
-    .option("cloudFiles.format", "csv")
+    .format("csv")
     .option("header", "true")
     .schema(CUSTOMER_SCHEMA)
     .load(SOURCE_PATH)

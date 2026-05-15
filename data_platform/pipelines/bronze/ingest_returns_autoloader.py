@@ -23,8 +23,7 @@ spark.sql("CREATE SCHEMA IF NOT EXISTS helix_bronze.returns")
 
 df = (
     spark.read
-    .format("cloudFiles")
-    .option("cloudFiles.format", "csv")
+    .format("csv")
     .option("header", "true")
     .schema(RETURNS_SCHEMA)
     .load(SOURCE_PATH)
