@@ -45,7 +45,8 @@ resources:
     # ingested via Auto Loader in ingest_customers_batch.py / ingest_products_batch.py.
     # Those two Lakeflow Connect pipelines are excluded from this bundle target.
 
-    # Lakeflow SDP — Bronze orders streaming + Silver + Gold (continuous)
+    # DLT streaming pipeline — ONLY ingest_orders_streaming.py uses @dlt.table.
+    # Silver/gold are regular Spark notebook tasks in the nightly_batch job below.
     streaming_pipeline:
       name: helix_streaming_pipeline
       continuous: true
@@ -55,48 +56,95 @@ resources:
       libraries:
         - notebook:
             path: data_platform/pipelines/bronze/ingest_orders_streaming.py
-        - notebook:
-            path: data_platform/pipelines/silver/fct_orders.py
-        - notebook:
-            path: data_platform/pipelines/gold/revenue_daily.py
-
-    # Lakeflow SDP — Nightly batch: Bronze returns + Silver dims + Gold aggregations
-    nightly_batch_pipeline:
-      name: helix_nightly_batch_pipeline
-      serverless: true
-      catalog: helix_bronze
-      target: batch
-      libraries:
-        - notebook:
-            path: data_platform/pipelines/bronze/ingest_customers_batch.py
-        - notebook:
-            path: data_platform/pipelines/bronze/ingest_products_batch.py
-        - notebook:
-            path: data_platform/pipelines/bronze/ingest_returns_autoloader.py
-        - notebook:
-            path: data_platform/pipelines/silver/dim_customers_scd2.py
-        - notebook:
-            path: data_platform/pipelines/silver/dim_products_scd1.py
-        - notebook:
-            path: data_platform/pipelines/silver/dim_regions_truncate_load.py
-        - notebook:
-            path: data_platform/pipelines/silver/fct_returns.py
-        - notebook:
-            path: data_platform/pipelines/gold/customer_metrics.py
-        - notebook:
-            path: data_platform/pipelines/gold/product_performance.py
 
   jobs:
 
+    # Nightly batch — runs as sequential Databricks Job notebook tasks.
+    # No DLT here: plain Spark notebooks; spark is injected automatically.
+    # Execution order: bronze → silver dims (parallel) → silver facts → gold
     nightly_batch:
       name: helix_nightly_batch
       schedule:
         quartz_cron_expression: "0 0 1 * * ?"
         timezone_id: "UTC"
+      job_clusters:
+        - job_cluster_key: batch_cluster
+          new_cluster:
+            spark_version: "15.4.x-scala2.12"
+            node_type_id: Standard_DS3_v2
+            num_workers: 1
+            data_security_mode: SINGLE_USER
+            spark_conf:
+              spark.databricks.delta.preview.enabled: "true"
       tasks:
-        - task_key: nightly_batch_pipeline
-          pipeline_task:
-            pipeline_id: ${resources.pipelines.nightly_batch_pipeline.id}
+        # --- Bronze ingestion (parallel, no dependencies) ---
+        - task_key: ingest_customers
+          job_cluster_key: batch_cluster
+          notebook_task:
+            notebook_path: ${workspace.root_path}/files/data_platform/pipelines/bronze/ingest_customers_batch
+
+        - task_key: ingest_products
+          job_cluster_key: batch_cluster
+          notebook_task:
+            notebook_path: ${workspace.root_path}/files/data_platform/pipelines/bronze/ingest_products_batch
+
+        - task_key: ingest_returns
+          job_cluster_key: batch_cluster
+          notebook_task:
+            notebook_path: ${workspace.root_path}/files/data_platform/pipelines/bronze/ingest_returns_autoloader
+
+        # --- Silver dims (depend on their bronze sources) ---
+        - task_key: dim_customers
+          depends_on:
+            - task_key: ingest_customers
+          job_cluster_key: batch_cluster
+          notebook_task:
+            notebook_path: ${workspace.root_path}/files/data_platform/pipelines/silver/dim_customers_scd2
+
+        - task_key: dim_products
+          depends_on:
+            - task_key: ingest_products
+          job_cluster_key: batch_cluster
+          notebook_task:
+            notebook_path: ${workspace.root_path}/files/data_platform/pipelines/silver/dim_products_scd1
+
+        - task_key: dim_regions
+          job_cluster_key: batch_cluster
+          notebook_task:
+            notebook_path: ${workspace.root_path}/files/data_platform/pipelines/silver/dim_regions_truncate_load
+
+        # --- Silver facts (depend on dims) ---
+        - task_key: fct_returns
+          depends_on:
+            - task_key: ingest_returns
+            - task_key: dim_customers
+            - task_key: dim_products
+          job_cluster_key: batch_cluster
+          notebook_task:
+            notebook_path: ${workspace.root_path}/files/data_platform/pipelines/silver/fct_returns
+
+        # --- Gold aggregations (depend on silver) ---
+        - task_key: customer_metrics
+          depends_on:
+            - task_key: fct_returns
+          job_cluster_key: batch_cluster
+          notebook_task:
+            notebook_path: ${workspace.root_path}/files/data_platform/pipelines/gold/customer_metrics
+
+        - task_key: product_performance
+          depends_on:
+            - task_key: fct_returns
+          job_cluster_key: batch_cluster
+          notebook_task:
+            notebook_path: ${workspace.root_path}/files/data_platform/pipelines/gold/product_performance
+
+        - task_key: revenue_daily
+          depends_on:
+            - task_key: fct_returns
+          job_cluster_key: batch_cluster
+          notebook_task:
+            notebook_path: ${workspace.root_path}/files/data_platform/pipelines/gold/revenue_daily
+
       email_notifications:
         on_failure:
           - ${var.ALERT_EMAIL}
