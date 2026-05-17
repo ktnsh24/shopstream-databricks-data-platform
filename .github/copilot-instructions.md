@@ -213,7 +213,7 @@ Why this strategy:
 
 | Decision | Choice | Reason |
 |---|---|---|
-| Shared catalog names with shopstream-databricks-ai-platform | Intentional | Wife's Gold tables feed the AI platform directly |
+| Shared catalog names with shopstream-databricks-ai-platform | Intentional | Gold tables from this repo feed the AI platform directly |
 | SCD2 for customers, SCD1 for products | Customers need history for ML feature joins; product current price is enough | |
 | Auto Loader for returns | Returns come as CSV exports, not a live DB | Lakeflow Connect requires JDBC-accessible database |
 | Truncate+Load for regions | Tiny table, deletions must reflect automatically | SCD1/SCD2 cannot handle source-side deletes |

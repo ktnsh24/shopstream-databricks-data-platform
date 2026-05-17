@@ -1,6 +1,6 @@
 # Hands-On Labs — ShopStream Databricks Data Platform
 
-> **Who this is for:** Wife builds every lab. Ketan builds the same in `shopstream-databricks-ai-platform`.
+> **Who this is for:** The data engineer builds every lab. Ketan builds the same in `shopstream-databricks-ai-platform`.
 > **All pipeline files start empty.** You write every line as you follow these labs.
 > **ShopStream** is a fictional Dutch e-commerce company (electronics, clothing, sports equipment).
 

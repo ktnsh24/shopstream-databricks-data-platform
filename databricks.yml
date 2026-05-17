@@ -20,7 +20,7 @@ variables:
 
 # ---------------------------------------------------------------------------
 # Target — single prod environment
-# Wife deploys here during Phase 02. Ketan copies the finished code into
+# The data platform is deployed here during Phase 02. The finished code is copied into
 # helix-ai-platform after Phase 02 is complete.
 # ---------------------------------------------------------------------------
 targets:
